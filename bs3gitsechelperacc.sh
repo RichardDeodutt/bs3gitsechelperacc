@@ -90,7 +90,7 @@ PromptYN(){
 GitCreateUser(){
     #First arugment is the git username
     GitUserName=$1
-    #Creating with no home folder
+    #Creating user with no home folder
     useradd $GitUserName
     #Check if git user creation failed
     if [ $? -ne 0 ]; then
@@ -101,6 +101,7 @@ GitCreateUser(){
     fi
 }
 
+#Function to check if the git user is set up and if not set it up
 GitUserCheck(){
     #Check if user exists
     id -u $GitSecureUser > /dev/null 2>&1
@@ -111,7 +112,47 @@ GitUserCheck(){
         if PromptYN "$(timestamp) || Create git secure user: '$GitSecureUser' Y/N? "; then
             #Create the git user
             GitCreateUser $GitSecureUser
+        else
+            Log "Git secure user: '$GitSecureUser' is not set up can't continue, run it again when you are ready"
+            exit 0
         fi
+    else
+        Log "Git secure user: '$GitSecureUser' is set up"
+    fi
+}
+
+#Function to create the git group
+GitCreateGroup(){
+    #First arugment is the git groupname
+    GitGroupName=$1
+    #Creating group
+    groupadd $GitGroupName
+    #Check if git group creation failed
+    if [ $? -ne 0 ]; then
+        Log "Creating git group: $GitGroupName failed"
+        exit 1
+    else
+        Log "Creating git group: $GitGroupName successful"
+    fi
+}
+
+#Function to check if the git group is set up and if not set it up
+GitGroupCheck(){
+    #Check if the group exists
+    id -g $GitSecureGroup > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        #The git group does not exist
+        Log "Git secure group: '$GitSecureGroup' does not exist"
+        #Prompt the user asking if to create the secure git group
+        if PromptYN "$(timestamp) || Create git secure group: '$GitSecureGroup' Y/N? "; then
+            #Create the git group
+            GitCreateGroup $GitSecureGroup
+        else
+            Log "Git secure group: '$GitSecureGroup' is not set up can't continue, run it again when you are ready"
+            exit 0
+        fi
+    else
+        Log "Git secure group: '$GitSecureGroup' is set up"
     fi
 }
 
@@ -122,9 +163,8 @@ Init(){
     Log "Script execution started"
     Log "Logs are located at $GitLogsLocation"
     GitUserCheck
+    GitGroupCheck
 }
-
-#CreateGroup FUNC
 
 #Add User to Group FUNC
 
