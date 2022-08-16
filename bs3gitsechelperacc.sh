@@ -79,7 +79,16 @@ GitGroupExists(){
     return $?
 }
 
-Git
+GitMembershipCheck(){
+    #First argument is the gitusername for membership check
+    MembershipCheckGitUser=$1
+    #Second argument is the gitgroupname for membership check
+    MembershipCheckGitGroup=$2
+    #Check if the git user is a member of the git group
+    id -nG $MemberCheckGitUser | grep -w $MemberCheckGitGroup > /dev/null 2>&1
+    #return the return value of the last command
+    return $?
+}
 
 #Funtion for root/admin permissions check, require admin permissions to run this script if it's needed
 PermissionsCheck(){
@@ -91,7 +100,7 @@ PermissionsCheck(){
     if [ $UID != 0 ]; then
         #Not running with admin permissions
         #Check if git user and git group exists, if they do then admin permissions is not needed
-        if GitUserExists $PermCheckGitUser && GitGroupExists $PermCheckGitGroup; then
+        if GitUserExists $PermCheckGitUser && GitGroupExists $PermCheckGitGroup && GitMembershipCheck $PermCheckGitUser $PermCheckGitGroup; then
             #No need for admin permissions as it is not needed now
             Log "This script was not run with admin permissions, but it is not need now"
             return 0
@@ -217,27 +226,82 @@ GitGroupCheck(){
     fi
 }
 
+#Function to add to the git group a git user
+GitGroupAddUser(){
+    #First argument is the git group
+    MemberAddGitGroup=$1
+    #Second arugment is the git user
+    MemberAddGitUser=$2
+    #Add to the git group the git user
+    usermod -a -G $MemberCheckGitGroup $MemberCheckGitUser
+    #Check if git group add failed
+    if [ $? -ne 0 ]; then
+        #Git group add failed so exit
+        Log "Adding to git group: '$MemberAddGitGroup' git user: '$MemberAddGitUser' failed"
+        exit 1
+    else
+        #Git group add worked
+        Log "Adding to git group: '$MemberAddGitGroup' git user: '$MemberAddGitUser' successful"
+    fi
+}
+
 #Function to check if the git user is a member of the git group and if not set it up
 GitMemberCheck(){
+    #First argument is the git user
+    MemberCheckGitUser=$1
+    #Second arugment is the git group
+    MemberCheckGitGroup=$2
     #Check if the git user is a member of the git group
+    if ! GitMembershipCheck $MemberCheckGitUser $MemberCheckGitGroup; then
+        #Git user is not a member of git group
+        Log "git user: '$MemberCheckGitUser' is not a member of git group: '$MemberCheckGitGroup'"
+        #Prompt the user asking if to add the git user to the git group
+        if PromptYN "$(timestamp) || Add git secure user: '$MemberCheckGitUser' to git secure group: '$MemberCheckGitGroup' Y/N? "; then
+            #Add to the git group the git user
+            GitGroupAddUser $MemberCheckGitGroup $MemberCheckGitUser
+        else
+            #Can't run script without the git user in the git group so exit
+            Log "Git secure user: '$MemberCheckGitUser' is not in git secure group: '$MemberCheckGitGroup' can't continue, run it again when you are ready"
+            exit 0
+        fi
+    else
+        #Git user is a member of git group
+        Log "git user: '$MemberCheckGitUser' is a member of git group: '$MemberCheckGitGroup'"
+        return 0
+    fi
 }
 
-#Run on script start up
+#Setup everything related to the git user and git group
+GitSetup(){
+    #First argument is the git user
+    SetupGitUser=$1
+    #Second arugment is the git group
+    SetupGitGroup=$2
+    #Check the permission of this script
+    PermissionsCheck $SetupGitUser $SetupGitGroup
+    #Git user check and setup
+    GitUserCheck $SetupGitUser
+    #Git group check and setup
+    GitGroupCheck $SetupGitGroup
+    #Git group user membership check and setup
+    GitMemberCheck $SetupGitUser $SetupGitGroup
+}
+
+#Run on script start up to set everything up
 Init(){
+    #Check git is installed and the script is run in a git local repository
     GitCheck
+    #Script inform user of starting script
     Log "Script execution started"
+    #Script inform user of who is running the script
     Log "Executed as '$USER'"
+    #Script inform user of where logs are located for the script
     Log "Logs are located at '$GitLogsLocation'"
-    PermissionsCheck $GitSecureUser $GitSecureGroup
-    GitUserCheck $GitSecureUser
-    GitGroupCheck $GitSecureGroup
+    #Script setup everything related to git user and git group for the script
+    GitSetup $GitSecureUser $GitSecureGroup
 }
 
-#Add User to Group FUNC
 
-#Setup User and Group FUNC
-
-#^ Should be in Init
 
 #Check if there are changes to add FUNC
 
@@ -252,6 +316,8 @@ Init(){
 #Commit Changes with prompt FUNC
 
 #Add and Commit Controller FUNC
+
+
 
 #Main script
 
