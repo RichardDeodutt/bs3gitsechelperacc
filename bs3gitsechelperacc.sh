@@ -32,7 +32,7 @@ Log(){
     #Second arugment is if to log to file or not
     FileLogThis=$2
     #Assign $FileLogThis to true if nothing is provided as the second arugment
-    if [ -z "$FileLogThis" ] ; then
+    if [ -z "$FileLogThis" ]; then
         FileLogThis=true
     fi
     #Only logs to a file if $CanFileLog is true and $FileLogThis is true
@@ -67,15 +67,83 @@ PermissionsCheck(){
     fi
 }
 
+#Prompts the user with a choice of Y(Yes) or N(No), anything else defaults to N(No)
+PromptYN(){
+    #First argument is the prompt
+    Prompt=$1
+    #Prompt the user
+    read -p $Prompt Response
+    #Lowercase the response and get the first character only
+    Response=$(printf "%s" $Response | tr [:upper:] [:lower:] | cut -c 1)
+    #if response is 'y' a yes then return true else assume 'n' a no then return false
+    if [[ $Response == 'y' ]]; then
+        return true
+    else
+        return false
+    fi
+}
+
+#Function to create the git user
+GitCreateUser(){
+    #First arugment is the git username
+    GitUserName=$1
+    #Creating with no home folder
+    useradd $GitUserName
+    #Check if git user creation failed
+    if [ $? -ne 0 ]; then
+        Log "Creating git user: $GitUserName failed"
+        exit 1
+    else
+        Log "Creating git user: $GitUserName successful"
+    fi
+}
+
+GitUserCheck(){
+    #Check if user exists
+    id -u $GitSecureUser > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        #The git user does not exist
+        Log "Git secure user: '$GitSecureUser' does not exist"
+        #Prompt the user asking if to create the secure git user
+        if PromptYN "Create git secure user: '$GitSecureUser'?"; then
+            #Create the git user
+            GitCreateUser $GitSecureUser
+        fi
+    fi
+}
+
 #Run on script start up
 Init(){
     GitCheck
     PermissionsCheck
+    GitUserCheck
     Log "Script execution started"
     Log "Logs are located at $GitLogsLocation"
 }
 
+#CreateUser FUNC
 
+#CreateGroup FUNC
+
+#Add User to Group FUNC
+
+#Setup User and Group FUNC
+
+#^ Should be in Init
+
+#Check if there are changes to add FUNC
+
+#Check if there is sensitive info in changes FUNC
+
+#Do Stuff with sensitive info with prompt FUNC
+
+#Add Changes with prompt FUNC
+
+#Check if there are changes to commit FUNC
+
+#Commit Changes with prompt FUNC
+
+#Add and Commit Controller FUNC
 
 #Main script
 
