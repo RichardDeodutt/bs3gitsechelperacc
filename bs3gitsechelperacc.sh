@@ -128,8 +128,22 @@ PermissionsCheck(){
 PromptYN(){
     #First argument is the prompt
     Prompt=$1
+    #Second arugment is if to skip the prompt or not, empty means no skipping the prompt else pass a true or false to force that answer
+    Skip=$2
+    #If $Skip is not empty then skip based on if it is true or false
+    if [ -n "$Skip" ]; then
+        if Skip; then
+            #If $Skip is true return 0 meaning Y(Yes)
+            Log "Skipping prompt: '$Prompt Y/N?', selecting: Y"
+            return 0
+        else
+            #if $Skip is false return 1 meaning N(No)
+            Log "Skipping prompt: '$Prompt Y/N?', selecting: N"
+            return 1
+        fi
+    fi
     #Prompt the user
-    read -p "$Prompt" Response
+    read -p "$(timestamp) || $Prompt Y/N? " Response
     #Lowercase the response and get the first character only
     Response=$(printf "%s" $Response | tr [:upper:] [:lower:] | cut -c 1)
     #if response is 'y' a yes then return true else assume 'n' a no then return false
@@ -167,12 +181,14 @@ GitCreateUser(){
 GitUserCheck(){
     #First arugment is the git username
     GitSecureUserName=$1
+    #Second arugment is if to skip the prompt or not, empty means no skipping the prompt else pass a true or false to force that answer
+    GitUserCheckSkip=$2
     #Check if user exists
     if ! GitUserExists $GitSecureUserName; then
         #The git user does not exist
         Log "Git secure user: '$GitSecureUserName' does not exist"
         #Prompt the user asking if to create the secure git user
-        if PromptYN "$(timestamp) || Create git secure user: '$GitSecureUserName' Y/N? "; then
+        if PromptYN "Create git secure user: '$GitSecureUserName'" $GitUserCheckSkip; then
             #Create the git user
             GitCreateUser $GitSecureUserName
         else
@@ -207,12 +223,14 @@ GitCreateGroup(){
 GitGroupCheck(){
     #First argument is the git group
     GitSecureGroupName=$1
+    #Second arugment is if to skip the prompt or not, empty means no skipping the prompt else pass a true or false to force that answer
+    GitGroupCheckSkip=$2
     #Check if the group exists
     if ! GitGroupExists $GitSecureGroupName; then
         #The git group does not exist
         Log "Git secure group: '$GitSecureGroupName' does not exist"
         #Prompt the user asking if to create the secure git group
-        if PromptYN "$(timestamp) || Create git secure group: '$GitSecureGroupName' Y/N? "; then
+        if PromptYN "Create git secure group: '$GitSecureGroupName'" $GitGroupCheckSkip; then
             #Create the git group
             GitCreateGroup $GitSecureGroupName
         else
@@ -251,12 +269,14 @@ GitMemberCheck(){
     MemberCheckGitUser=$1
     #Second arugment is the git group
     MemberCheckGitGroup=$2
+    #Third arugment is if to skip the prompt or not, empty means no skipping the prompt else pass a true or false to force that answer
+    GitMemberCheckSkip=$3
     #Check if the git user is a member of the git group
     if ! GitMembershipCheck $MemberCheckGitUser $MemberCheckGitGroup; then
         #Git user is not a member of git group
         Log "git user: '$MemberCheckGitUser' is not a member of git group: '$MemberCheckGitGroup'"
         #Prompt the user asking if to add the git user to the git group
-        if PromptYN "$(timestamp) || Add git secure user: '$MemberCheckGitUser' to git secure group: '$MemberCheckGitGroup' Y/N? "; then
+        if PromptYN "Add git secure user: '$MemberCheckGitUser' to git secure group: '$MemberCheckGitGroup'" $GitMemberCheckSkip; then
             #Add to the git group the git user
             GitGroupAddUser $MemberCheckGitGroup $MemberCheckGitUser
         else
@@ -277,14 +297,16 @@ GitSetup(){
     SetupGitUser=$1
     #Second arugment is the git group
     SetupGitGroup=$2
+    #Third arugment is if to skip the prompt or not, empty means no skipping the prompt else pass a true or false to force that answer
+    GitSetupSkip=$3
     #Check the permission of this script
     PermissionsCheck $SetupGitUser $SetupGitGroup
     #Git user check and setup
-    GitUserCheck $SetupGitUser
+    GitUserCheck $SetupGitUser $GitSetupSkip
     #Git group check and setup
-    GitGroupCheck $SetupGitGroup
+    GitGroupCheck $SetupGitGroup $GitSetupSkip
     #Git group user membership check and setup
-    GitMemberCheck $SetupGitUser $SetupGitGroup
+    GitMemberCheck $SetupGitUser $SetupGitGroup $GitSetupSkip
 }
 
 #Run on script start up to set everything up
@@ -297,7 +319,7 @@ Init(){
     Log "Executed as '$USER'"
     #Script inform user of where logs are located for the script
     Log "Logs are located at '$GitLogsLocation'"
-    #Script setup everything related to git user and git group for the script
+    #Script setup everything related to git user and git group for the script, third argument for skiping the prompt is empty so it will prompt
     GitSetup $GitSecureUser $GitSecureGroup
 }
 
@@ -317,6 +339,7 @@ Init(){
 
 #Add and Commit Controller FUNC
 
+#Test everything
 
 
 #Main script
