@@ -61,27 +61,37 @@ GitCheck(){
 
 #Check if the git user exists
 GitUserExists(){
+    #First argument is the git user to check existence
+    ExistCheckGitUser=$1
     #Check if user exists
-    id -u $GitSecureUser > /dev/null 2>&1
+    id -u $ExistCheckGitUser > /dev/null 2>&1
     #return the return value of the last command
     return $?
 }
 
 #Check if the git group exists
 GitGroupExists(){
+    #First argument is the git group to check existence
+    ExistCheckGitGroup=$1
     #Check if the group exists
-    id -g $GitSecureGroup > /dev/null 2>&1
+    id -g $ExistCheckGitGroup > /dev/null 2>&1
     #return the return value of the last command
     return $?
 }
 
+Git
+
 #Funtion for root/admin permissions check, require admin permissions to run this script if it's needed
 PermissionsCheck(){
+    #First argument is the gitusername for permission check
+    PermCheckGitUser=$1
+    #Second argument is the gitgroupname for permission check
+    PermCheckGitGroup=$2
     #Check if script is running with admin permissions
     if [ $UID != 0 ]; then
         #Not running with admin permissions
         #Check if git user and git group exists, if they do then admin permissions is not needed
-        if GitUserExists && GitGroupExists; then
+        if GitUserExists $PermCheckGitUser && GitGroupExists $PermCheckGitGroup; then
             #No need for admin permissions as it is not needed now
             Log "This script was not run with admin permissions, but it is not need now"
             return 0
@@ -93,7 +103,7 @@ PermissionsCheck(){
     else
         #Running with admin permissions
         #Check if git user and git group exists, if they do then admin permissions is not needed
-        if GitUserExists && GitGroupExists; then
+        if GitUserExists $PermCheckGitUser && GitGroupExists $PermCheckGitGroup; then
             #No need for admin permissions as it is not needed now
             Log "This script was run with admin permissions, but it is not need now"
             return 0
@@ -146,22 +156,24 @@ GitCreateUser(){
 
 #Function to check if the git user is set up and if not set it up
 GitUserCheck(){
+    #First arugment is the git username
+    GitSecureUserName=$1
     #Check if user exists
-    if ! GitUserExists; then
+    if ! GitUserExists $GitSecureUserName; then
         #The git user does not exist
-        Log "Git secure user: '$GitSecureUser' does not exist"
+        Log "Git secure user: '$GitSecureUserName' does not exist"
         #Prompt the user asking if to create the secure git user
-        if PromptYN "$(timestamp) || Create git secure user: '$GitSecureUser' Y/N? "; then
+        if PromptYN "$(timestamp) || Create git secure user: '$GitSecureUserName' Y/N? "; then
             #Create the git user
-            GitCreateUser $GitSecureUser
+            GitCreateUser $GitSecureUserName
         else
             #Can't run script without a git user so exit
-            Log "Git secure user: '$GitSecureUser' is not set up can't continue, run it again when you are ready"
+            Log "Git secure user: '$GitSecureUserName' is not set up can't continue, run it again when you are ready"
             exit 0
         fi
     else
         #Git user already exists
-        Log "Git secure user: '$GitSecureUser' is set up"
+        Log "Git secure user: '$GitSecureUserName' is set up"
     fi
 }
 
@@ -184,23 +196,30 @@ GitCreateGroup(){
 
 #Function to check if the git group is set up and if not set it up
 GitGroupCheck(){
+    #First argument is the git group
+    GitSecureGroupName=$1
     #Check if the group exists
-    if ! GitGroupExists; then
+    if ! GitGroupExists $GitSecureGroupName; then
         #The git group does not exist
-        Log "Git secure group: '$GitSecureGroup' does not exist"
+        Log "Git secure group: '$GitSecureGroupName' does not exist"
         #Prompt the user asking if to create the secure git group
-        if PromptYN "$(timestamp) || Create git secure group: '$GitSecureGroup' Y/N? "; then
+        if PromptYN "$(timestamp) || Create git secure group: '$GitSecureGroupName' Y/N? "; then
             #Create the git group
-            GitCreateGroup $GitSecureGroup
+            GitCreateGroup $GitSecureGroupName
         else
             #Can't run script without a git group so exit
-            Log "Git secure group: '$GitSecureGroup' is not set up can't continue, run it again when you are ready"
+            Log "Git secure group: '$GitSecureGroupName' is not set up can't continue, run it again when you are ready"
             exit 0
         fi
     else
         #Git group already exists
-        Log "Git secure group: '$GitSecureGroup' is set up"
+        Log "Git secure group: '$GitSecureGroupName' is set up"
     fi
+}
+
+#Function to check if the git user is a member of the git group and if not set it up
+GitMemberCheck(){
+    #Check if the git user is a member of the git group
 }
 
 #Run on script start up
@@ -209,9 +228,9 @@ Init(){
     Log "Script execution started"
     Log "Executed as '$USER'"
     Log "Logs are located at '$GitLogsLocation'"
-    PermissionsCheck
-    GitUserCheck
-    GitGroupCheck
+    PermissionsCheck $GitSecureUser $GitSecureGroup
+    GitUserCheck $GitSecureUser
+    GitGroupCheck $GitSecureGroup
 }
 
 #Add User to Group FUNC
