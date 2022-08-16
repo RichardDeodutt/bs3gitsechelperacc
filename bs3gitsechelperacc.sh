@@ -72,14 +72,17 @@ PromptYN(){
     #First argument is the prompt
     Prompt=$1
     #Prompt the user
-    read -p $Prompt Response
+    read -p "$Prompt" Response
     #Lowercase the response and get the first character only
     Response=$(printf "%s" $Response | tr [:upper:] [:lower:] | cut -c 1)
     #if response is 'y' a yes then return true else assume 'n' a no then return false
     if [[ $Response == 'y' ]]; then
-        return true
+        return 0
+    elif [[ $Response == 'n' ]]; then
+        return 1
     else
-        return false
+        Log "Did not understand that assuming no"
+        return 1
     fi
 }
 
@@ -105,7 +108,7 @@ GitUserCheck(){
         #The git user does not exist
         Log "Git secure user: '$GitSecureUser' does not exist"
         #Prompt the user asking if to create the secure git user
-        if PromptYN "Create git secure user: '$GitSecureUser'?"; then
+        if PromptYN "$(timestamp) || Create git secure user: '$GitSecureUser' Y/N? "; then
             #Create the git user
             GitCreateUser $GitSecureUser
         fi
@@ -116,12 +119,10 @@ GitUserCheck(){
 Init(){
     GitCheck
     PermissionsCheck
-    GitUserCheck
     Log "Script execution started"
     Log "Logs are located at $GitLogsLocation"
+    GitUserCheck
 }
-
-#CreateUser FUNC
 
 #CreateGroup FUNC
 
