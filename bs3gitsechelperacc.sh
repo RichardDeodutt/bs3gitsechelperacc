@@ -7,10 +7,10 @@
 GitLogsLocation='.git/.gitlogs'
 
 #Default git user name, can be changed if desired
-GitSecureUser='gitsecuser'
+GitSecureUser='gituser'
 
 #Default git account group name, can be changed if desired
-GitSecureGroup='gitsecacc'
+GitSecureGroup='GitAcc'
 
 #This controls the option to log to a file, should be left on true by default
 CanFileLog=true
@@ -85,7 +85,7 @@ GitMembershipCheck(){
     #Second argument is the gitgroupname for membership check
     MembershipCheckGitGroup=$2
     #Check if the git user is a member of the git group
-    id -nG $MemberCheckGitUser | grep -w $MemberCheckGitGroup > /dev/null 2>&1
+    id -nG $MemberCheckGitUser 2> /dev/null | grep -w $MemberCheckGitGroup > /dev/null 2>&1
     #return the return value of the last command
     return $?
 }
@@ -323,6 +323,47 @@ Init(){
     GitSetup $GitSecureUser $GitSecureGroup
 }
 
+#Function to check if the current git repository is modified
+GitModifiedCheck(){
+    #The git status of the current working directory checking if the text contains 'modified:'
+    git status 2> /dev/null | grep -w "modified:" > /dev/null 2>&1
+    #return the exit status of grep, 0 is a match anything else is not
+    return $?
+}
+
+#Function to get the filenames of the modified and new untracked files
+GitGetModifiedNewFilenames(){
+    #Print the list of modified files and new untracked files
+    git ls-files -mo --exclude-standard
+}
+
+#Scrub a file of sensitive information
+Scrub(){
+    echo Home
+}
+
+#Function to check modified files for sensitive information
+ScrubFiles(){
+    #Tell the user what we are about to do
+    Log "Scrubbing files of sensitive information"
+    #Get the list of modified files and new untracked files
+    Filenames=$(GitGetModifiedNewFilenames)
+    #Number of modified and new untracked files
+    NumbFiles=$(printf "%s\n" "$Filenames" | wc -l)
+    for ((i=1;i<=NumbFiles;i++)); do
+        Scrub 
+    done
+}
+
+
+GitOps(){
+    GitModifiedCheck
+    if [ $? -eq 0 ]; then
+        ScrubFiles
+    else
+        echo NoScrub
+    fi
+}
 
 
 #Check if there are changes to add FUNC
@@ -342,6 +383,10 @@ Init(){
 #Test everything
 
 
+
 #Main script
 
-Init
+#Set up everything
+#Init
+
+GitOps
