@@ -337,9 +337,117 @@ GitGetModifiedNewFilenames(){
     git ls-files -mo --exclude-standard
 }
 
+#Function to censor a specific phone number on a specific line in a speicific file
+CensorPhoneNumber(){
+    #First arugment is the phone number to censor
+    CensorPhoneNumber=$1
+    #Second argument is the file where it is in
+    CensorPHFileName=$2
+    #Third Argument is the line which the phone number is located
+    CensorPHLineNumber=$3
+    #Replace the phone number with this
+    CensoredPHText=${CensorPhoneNumber//[0-9]/X}
+    #Censor the phone number
+    sed -i "${CensorPHLineNumber}s/$CensorPhoneNumber/$CensoredPHText/" $CensorPHFileName
+    #Check if censor worked
+    if [ $? -ne 0 ]; then
+        #Censor failed
+        Log "Block phone number '$CensorPhoneNumber' in file '$CensorPHFileName' failed"
+        exit 1
+    else
+        #Censor worked
+        Log "Block phone number '$CensorPhoneNumber' in file '$CensorPHFileName' successful"
+    fi
+}
+
+#Scrub a file of phone numbers
+ScrubPhoneNumbers(){
+    #First arugment is the filename of the file to scrub for phone numbers
+    ScrubPhoneNumbersFile=$1
+    #Check for phone numbers, matches any 3 numbers with or without parentheses followed by any 3 numbers then any 4 numbers seperating the three parts with a hypen or space
+    FoundPhoneNumbers="$(grep -w '\(\(([0-9]\{3\})\|[0-9]\{3\}\)[ -]\?\)\{2\}[0-9]\{4\}' $ScrubPhoneNumbersFile)"
+    #Number of phone numbers found
+    NumbPhoneNumbers=$(printf "%s\n" "$FoundPhoneNumbers" | wc -l)
+    #Check if phone numbers were found in the file
+    if [ -n "$FoundPhoneNumbers" ]; then
+        #List out all the found phone numbers
+        for ((j=1;j<=NumbPhoneNumbers;j++)); do
+            #Current Phone number from the found phone number list for this run of the loop
+            PhoneNumber=$(printf "%s\n" "$FoundPhoneNumbers" | sed -n "$j"p | sed 's/\r$//')
+            #Log the phone number and where it was found
+            Log "Found phone number '$PhoneNumber' in file '$ScrubPhoneNumbersFile'"
+            #Ask the user if to block it by censoring it
+            if PromptYN "Block phone number '$PhoneNumber' in file '$ScrubPhoneNumbersFile'?"; then
+                #Block or censor the phone nummber if they want to do that
+                CensorPhoneNumber "$PhoneNumber" "$ScrubPhoneNumbersFile" "$j"
+            else
+                #User did not want to block that phone number
+                Log "You do not want to block phone number '$PhoneNumber' in file '$ScrubPhoneNumbersFile'"
+            fi
+        done
+    fi
+}
+
+#Function to censor a specific SSN on a specific line in a speicific file
+CensorSSN(){
+    #First arugment is the SSN to censor
+    CensorSSN=$1
+    #Second argument is the file where it is in
+    CensorSSNFileName=$2
+    #Third Argument is the line which the SSN is located
+    CensorSSNLineNumber=$3
+    #Replace the SSN with this
+    CensoredSSNText=${CensorSSN//[0-9]/X}
+    #Censor the SSN
+    sed -i "${CensorSSNLineNumber}s/$CensorSSN/$CensoredSSNText/" $CensorSSNFileName
+    #Check if censor worked
+    if [ $? -ne 0 ]; then
+        #Censor failed
+        Log "Block SSN '$CensorSSN' in file '$CensorSSNFileName' failed"
+        exit 1
+    else
+        #Censor worked
+        Log "Block SSN '$CensorSSN' in file '$CensorSSNFileName' successful"
+    fi
+}
+
+#Scrub a file of SSNs
+ScrubSSNs(){
+    #First arugment is the filename of the file to scrub for SSNs
+    ScrubSSNFile=$1
+    #Check for SSNs, matches any 3 numbers followed by any 2 numbers then any 4 numbers seperating the three parts with a hypen or space
+    #Further filter according to valid SSN rules no field should be equal to 0 and the first field can't be 666 or above 900
+    FoundSSNs="$(grep -w "\([0-9]\{3\}\)[ -]\?\([0-9]\{2\}\)[ -]\?\([0-9]\{4\}\)" $ScrubSSNFile | awk -F ' |-' '$1!=0 && $1!=666 && $1<900 && $2!=0 && $3!=0 {print $0}')"
+    #Number of SSNs found
+    NumbSSNs=$(printf "%s\n" "$FoundSSNs" | wc -l)
+    #Check if SSNs were found in the file
+    if [ -n "$FoundSSNs" ]; then
+        #List out all the found SSNs
+        for ((k=1;k<=NumbSSNs;k++)); do
+            #Current SSN from the found SSNs list for this run of the loop
+            SSN=$(printf "%s\n" "$FoundSSNs" | sed -n "$k"p | sed 's/\r$//')
+            #Log the SSN and where it was found
+            Log "Found SSN '$SSN' in file '$ScrubSSNFile'"
+            #Ask the user if to block it by censoring it
+            if PromptYN "Block SSN '$SSN' in file '$ScrubSSNFile'?"; then
+                #Block or censor the SSN if they want to do that
+                CensorSSN "$SSN" "$ScrubSSNFile" "$k"
+            else
+                #User did not want to block that SSN
+                Log "You do not want to block SSN '$SSN' in file '$ScrubSSNFile'"
+            fi
+        done
+    fi
+}
+
 #Scrub a file of sensitive information
 Scrub(){
-    echo Home
+    #First arugment is the filename of the file to scrub
+    ScrubFile=$1
+    #Scrub the file of phone numbers
+    ScrubPhoneNumbers $ScrubFile
+    #Scrub the file of SSNs
+    ScrubSSNs $ScrubFile
 }
 
 #Function to check modified files for sensitive information
@@ -350,9 +458,14 @@ ScrubFiles(){
     Filenames=$(GitGetModifiedNewFilenames)
     #Number of modified and new untracked files
     NumbFiles=$(printf "%s\n" "$Filenames" | wc -l)
+    #Go through all the modified files and new untracked files to scrub them using a for loop
     for ((i=1;i<=NumbFiles;i++)); do
-        Scrub 
+        #Filename of the file for this run of the loop
+        Filename=$(printf "%s\n" "$Filenames" | sed -n "$i"p | sed 's/\r$//')
+        #Scrub the file using the filename to find it
+        Scrub $Filename
     done
+    Log "Scrubbed files of sensitive information"
 }
 
 
@@ -361,16 +474,11 @@ GitOps(){
     if [ $? -eq 0 ]; then
         ScrubFiles
     else
-        echo NoScrub
+        Log "Nothing was changed in the current git repository"
     fi
 }
 
 
-#Check if there are changes to add FUNC
-
-#Check if there is sensitive info in changes FUNC
-
-#Do Stuff with sensitive info with prompt FUNC
 
 #Add Changes with prompt FUNC
 
