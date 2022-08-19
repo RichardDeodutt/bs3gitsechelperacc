@@ -336,7 +336,7 @@ Init(){
 #Function to check if the current git repository is modified
 GitModifiedCheck(){
     #The git status of the current working directory checking if the text contains 'modified:'
-    git status 2> /dev/null | grep -w "modified:" > /dev/null 2>&1
+    git status 2> /dev/null | grep -o "modified:" > /dev/null 2>&1
     #return the exit status of grep, 0 is a match anything else is not
     return $?
 }
@@ -375,7 +375,7 @@ ScrubPhoneNumbers(){
     #First arugment is the filename of the file to scrub for phone numbers
     ScrubPhoneNumbersFile=$1
     #Check for phone numbers, matches any 3 numbers with or without parentheses followed by any 3 numbers then any 4 numbers seperating the three parts with a hypen or space
-    FoundPhoneNumbers="$(grep -w '\(\(([0-9]\{3\})\|[0-9]\{3\}\)[ -]\?\)\{2\}[0-9]\{4\}' $ScrubPhoneNumbersFile)"
+    FoundPhoneNumbers="$(grep -o '\(\(([0-9]\{3\})\|[0-9]\{3\}\)[ -]\?\)\{2\}[0-9]\{4\}' $ScrubPhoneNumbersFile)"
     #Number of phone numbers found
     NumbPhoneNumbers=$(printf "%s\n" "$FoundPhoneNumbers" | wc -l)
     #Check if phone numbers were found in the file
@@ -427,7 +427,7 @@ ScrubSSNs(){
     ScrubSSNFile=$1
     #Check for SSNs, matches any 3 numbers followed by any 2 numbers then any 4 numbers seperating the three parts with a hypen or space
     #Further filter according to valid SSN rules no field should be equal to 0 and the first field can't be 666 or above 900
-    FoundSSNs="$(grep -w "\([0-9]\{3\}\)[ -]\?\([0-9]\{2\}\)[ -]\?\([0-9]\{4\}\)" $ScrubSSNFile | awk -F ' |-' '$1!=0 && $1!=666 && $1<900 && $2!=0 && $3!=0 {print $0}')"
+    FoundSSNs="$(grep -o "\([0-9]\{3\}\)[ -]\?\([0-9]\{2\}\)[ -]\?\([0-9]\{4\}\)" $ScrubSSNFile | awk -F ' |-' '$1!=0 && $1!=666 && $1<900 && $2!=0 && $3!=0 {print $0}')"
     #Number of SSNs found
     NumbSSNs=$(printf "%s\n" "$FoundSSNs" | wc -l)
     #Check if SSNs were found in the file
@@ -511,7 +511,7 @@ GitAddCheck(){
 #Function to check if the current git repository is staging
 GitStageCheck(){
     #The git status of the current working directory checking if the text contains 'committed:'
-    git status 2> /dev/null | grep -w "committed:" > /dev/null 2>&1
+    git status 2> /dev/null | grep -o "committed:" > /dev/null 2>&1
     #return the exit status of grep, 0 is a match anything else is not
     return $?
 }
@@ -567,7 +567,7 @@ GitCommitCheck(){
 #Function to check if the current git repository is ahead and needs pushing
 GitAheadCheck(){
     #The git status of the current working directory checking if the text contains 'Your branch is ahead of'
-    git status 2> /dev/null | grep -w "Your branch is ahead of" > /dev/null 2>&1
+    git status 2> /dev/null | grep -o "Your branch is ahead of" > /dev/null 2>&1
     #return the exit status of grep, 0 is a match anything else is not
     return $?
 }
