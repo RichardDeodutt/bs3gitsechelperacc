@@ -118,7 +118,7 @@ PermissionsCheck(){
     else
         #Running with admin permissions
         #Check if git user and git group exists, if they do then admin permissions is not needed
-        if GitUserExists $PermCheckGitUser && GitGroupExists $PermCheckGitGroup; then
+        if GitUserExists $PermCheckGitUser && GitGroupExists $PermCheckGitGroup && GitMembershipCheck $PermCheckGitUser $PermCheckGitGroup; then
             #Setup not required
             Log "Setup not require"
             #No need for admin permissions as it is not needed now
