@@ -468,33 +468,205 @@ ScrubFiles(){
     Log "Scrubbed files of sensitive information"
 }
 
-
-GitOps(){
-    GitModifiedCheck
-    if [ $? -eq 0 ]; then
-        ScrubFiles
+#Function to do git all for everything in the current directory
+GitAddAll(){
+    #Git add command
+    git add .
+    #Check if the git add failed
+    if [ $? -ne 0 ]; then
+        #Git add failed so exit
+        Log "Git add failed"
+        exit 1
     else
-        Log "Nothing was changed in the current git repository"
+        #Git add worked
+        Log "Git add successful"
     fi
 }
 
+#Function to control the git add
+GitAddCheck(){
+    #Tell user there are changes to be staged
+    Log "There are changes to be added to the staging area"
+    #Ask the user if to add all the changes
+    if PromptYN "Would you like to add all the modified and or new files to the staging area?"; then
+        #User wanted to add all the stages so add it
+        GitAddAll
+    else
+        #User did not want to run git add, can't continue so exit
+        Log "Git add not run, run this again when you are ready"
+        exit 1
+    fi
+}
 
+#Function to check if the current git repository is staging
+GitStageCheck(){
+    #The git status of the current working directory checking if the text contains 'committed:'
+    git status 2> /dev/null | grep -w "committed:" > /dev/null 2>&1
+    #return the exit status of grep, 0 is a match anything else is not
+    return $?
+}
 
-#Add Changes with prompt FUNC
+#Function to git commit all staged changes in the current directory
+GitCommitAll(){
+    #First argument is the commit message if any
+    CommitMessage=$1
+    #Git commit command
+    if [ -n $CommitMessage ]; then
+        #Has a one line message so use that
+        git commit -m "$CommitMessage"
+    else
+        #No one line message so use the editor
+        git commit
+    fi
+    #Check if the git commit failed
+    if [ $? -ne 0 ]; then
+        #Git commit failed so exit
+        Log "Git commit failed"
+        exit 1
+    else
+        #Git commit worked
+        Log "Git commit successful"
+    fi
+}
 
-#Check if there are changes to commit FUNC
+#Function to control git commit
+GitCommitCheck(){
+    #Tell user there are changes to be committed
+    Log "There are changes to be added to committed"
+    #Ask the user if to commit all the changes
+    if PromptYN "Would you like to commit all the modified and or new files?"; then
+        #Ask if to open the editor for the commit message
+        if PromptYN "Would you like to open the editor for the commit message?"; then
+            #User wanted to commit all the stages so commit it and use the editor for the message
+            GitCommitAll
+        else
+            #User did not want to use the editor for the commit message so ask for a commit message
+            read -p "$(timestamp) || Enter one line commit message: " CMessage
+            #User wanted to commit all the stages so commit it and use a one line message
+            GitCommitAll "$CMessage"
+        fi
+        #User wanted to commit all the stages so commit it
+        GitCommitAll
+    else
+        #User did not want to run git commit, can't continue so exit
+        Log "Git commit not run, run this again when you are ready"
+        exit 1
+    fi
+}
 
-#Commit Changes with prompt FUNC
+#Function to check if the current git repository is ahead and needs pushing
+GitAheadCheck(){
+    #The git status of the current working directory checking if the text contains 'Your branch is ahead of'
+    git status 2> /dev/null | grep -w "Your branch is ahead of" > /dev/null 2>&1
+    #return the exit status of grep, 0 is a match anything else is not
+    return $?
+}
 
-#Add and Commit Controller FUNC
+#Function to git push all the commits
+GitPushAll(){
+    #Check the latest state of the remote branch
+    Log "Fetching the latest state of the remote branch before a push"
+    #Fetch the latest database
+    git fetch
+    if [ $? -ne 0 ]; then
+        #Git fetch failed so exit
+        Log "Git fetch failed"
+        exit 1
+    else
+        #Git fetch worked
+        Log "Git fetch successful"
+    fi
+    #Simulate a push to check if it will cause issues
+    Log "Simulating a push before actually pushing to check for issues"
+    #Simulate a git push
+    git push --dry-run
+    if [ $? -ne 0 ]; then
+        #Git simulated push failed so exit
+        Log "Git simulated push failed"
+        exit 1
+    else
+        #Git simulated push worked
+        Log "Git simulated push successful"
+    fi
+    #Everything seems okay before the real push
+    Log "Pushing commits"
+    #Git push command
+    git push
+    #Check if the git push failed
+    if [ $? -ne 0 ]; then
+        #Git push failed so exit
+        Log "Git push failed"
+        exit 1
+    else
+        #Git push worked
+        Log "Git push successful"
+    fi
+}
 
-#Test everything
+#Function to control git push
+GitPushCheck(){
+    #Tell user there are commits to be pushed
+    Log "There are commits to be pushed"
+    #Ask the user if to push all the commits
+    if PromptYN "Would you like to push all the commits?"; then
+        #User wanted to push all the stages so push it
+        GitPushAll
+    else
+        #User did not want to run git push, can't continue so exit
+        Log "Git push not run, run this again when you are ready"
+        exit 1
+    fi
+}
+
+#Function to control all the git operations
+GitOps(){
+    #Check if files in the current directory changed
+    GitModifiedCheck
+    if [ $? -eq 0 ]; then
+        #Files were changed so tell the user
+        Log "There are modified and or new files in the current git repository"
+        #Scrub the files for sensitive information
+        ScrubFiles
+        #After the scrub git add the changes
+        GitAddCheck
+    else
+        #Nothing needs staging
+        Log "Nothing was changed in the current git repository requiring staging"
+    fi
+    #Check if files in the current directory are staged and need committing
+    GitStageCheck
+    if [ $? -eq 0 ]; then
+        #Files are staged so tell the user
+        Log "There are staged files in the current git repository"
+        #Commit staged files
+        GitCommitCheck
+    else
+        #Nothing needs commiting
+        Log "Nothing was changed in the current git repository requiring committing"
+    fi
+    #Check if this repository is ahead and there are commits to push
+    GitAheadCheck
+    if [ $? -eq 0 ]; then
+        #This repo is ahead so tell the user
+        Log "There are commits to be pushed in the current git repository"
+        #Push commits
+        GitPushCheck
+    else
+        #Nothing needs pushing
+        Log "Nothing was changed in the current git repository requiring pushing"
+    fi
+}
 
 
 
 #Main script
 
 #Set up everything
-#Init
+Init
 
+#Do git operations
 GitOps
+
+#Script exiting
+Log "Script Successfully ran"
+exit 0
