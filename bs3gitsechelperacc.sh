@@ -338,7 +338,18 @@ GitModifiedCheck(){
     #The git status of the current working directory checking if the text contains 'modified:'
     git status 2> /dev/null | grep -o "modified:" > /dev/null 2>&1
     #return the exit status of grep, 0 is a match anything else is not
-    return $?
+    Mod=$?
+    #The git status of the current working directory checking if the text contains 'Untracked files:'
+    git status 2> /dev/null | grep -o "Untracked files:" > /dev/null 2>&1
+    #return the exit status of grep, 0 is a match anything else is not
+    Untracked=$?
+    #If either is 0 it means there was a modification
+    if [ $Mod -eq 0 ] || [ $Untracked -eq 0 ]; then
+        #There was a modification
+        return 0
+    else
+        #There was not a modification
+        return 1
 }
 
 #Function to get the filenames of the modified and new untracked files
