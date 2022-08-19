@@ -573,6 +573,17 @@ GitAheadCheck(){
 
 #Function to git push all the commits
 GitPushAll(){
+    #Check if we are trying to push to main
+    CBranch=$(git branch | cut -c 3-)
+    #Check if this is the main branch and if it is can we push to it
+    if [[ CBranch == "main" ]] && ! CanPushMain ; then
+        #Trying to push to main when it is not allowed
+        Log "Can't push to the main branch"
+        exit 1
+    else
+        #Trying to push to main when it is allowed
+        Log "Pushing to the main branch but it is enabled in the script right now"
+    fi
     #Check the latest state of the remote branch
     Log "Fetching the latest state of the remote branch before a push"
     #Fetch the latest database
