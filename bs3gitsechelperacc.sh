@@ -2,7 +2,8 @@
 
 #Richard Deodutt
 #08/15/2022
-#This script is meant to securely and automatically create a git user and push changes to any branch but main, placing the git user in a GitAcc group, doing git add and commit while also handling sensitive personal information such as phone numbers or SSN before pushing.
+#This script is meant to securely and automatically create a git user and push changes to any branch but main, placing the git user in a GitAcc group, doing git add and commit while also handling sensitive personal information such as phone numbers or SSN before pushing. 
+#This script should be place in /bin so all users can access it making sure to refresh the shell so it detects it. The script should then be run when in the directory of the git local repository. The script needs to be run first using sudo or as root for the setup or user and group creation bit. Then the script needs to be run again to do the git operations bit as sudo or root is most likely not setup to do git operations. 
 
 GitLogsLocation='.git/.gitlogs'
 
@@ -101,24 +102,32 @@ PermissionsCheck(){
         #Not running with admin permissions
         #Check if git user and git group exists, if they do then admin permissions is not needed
         if GitUserExists $PermCheckGitUser && GitGroupExists $PermCheckGitGroup && GitMembershipCheck $PermCheckGitUser $PermCheckGitGroup; then
+            #Setup not required
+            Log "Setup not require"
             #No need for admin permissions as it is not needed now
             Log "This script was not run with admin permissions, but it is not need now"
             return 0
         else
+            #Setup required
+            Log "Setup is require"
             #Need admin permissions to create a user or group so exit if it does not have it but needs it
-            Log "This script was not run with admin permissions, but it is needed so run it again with admin permissions"
+            Log "This script was not run with admin permissions, but it is needed so run it again with admin permissions for setup"
             exit 1
         fi
     else
         #Running with admin permissions
         #Check if git user and git group exists, if they do then admin permissions is not needed
         if GitUserExists $PermCheckGitUser && GitGroupExists $PermCheckGitGroup; then
+            #Setup not required
+            Log "Setup not require"
             #No need for admin permissions as it is not needed now
-            Log "This script was run with admin permissions, but it is not need now"
-            return 0
+            Log "This script was run with admin permissions, but it is not need so run it again without admin permissions for git operations"
+            exit 1
         else
+            #Setup required
+            Log "Setup is require"
             #Need admin permissions to create a user or group so exit if it does not have it but needs it
-            Log "This script was run with admin permissions, but it is needed now"
+            Log "This script was run with admin permissions, but it is needed for setup"
             return 0
         fi
     fi
@@ -620,6 +629,12 @@ GitPushCheck(){
 
 #Function to control all the git operations
 GitOps(){
+    #First argument is the git user
+    GitOpsGitUser=$1
+    #Second arugment is the git group
+    GitOpsGitGroup=$2
+    #Check the permission of this script
+    PermissionsCheck $GitOpsGitUser $GitOpsGitGroup
     #Check if files in the current directory changed
     GitModifiedCheck
     if [ $? -eq 0 ]; then
@@ -665,7 +680,7 @@ GitOps(){
 Init
 
 #Do git operations
-GitOps
+GitOps $GitSecureUser $GitSecureGroup
 
 #Script exiting
 Log "Script Successfully ran"
