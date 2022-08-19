@@ -65,7 +65,8 @@ GitUserExists(){
     #First argument is the git user to check existence
     ExistCheckGitUser=$1
     #Check if user exists
-    id -u $ExistCheckGitUser > /dev/null 2>&1
+    #id -u $ExistCheckGitUser > /dev/null 2>&1
+    grep -o "$ExistCheckGitUser:" /etc/passwd > /dev/null 2>&1
     #return the return value of the last command
     return $?
 }
@@ -75,7 +76,7 @@ GitGroupExists(){
     #First argument is the git group to check existence
     ExistCheckGitGroup=$1
     #Check if the group exists
-    id -g $ExistCheckGitGroup > /dev/null 2>&1
+    grep -o "$ExistCheckGitGroup:" /etc/group > /dev/null 2>&1
     #return the return value of the last command
     return $?
 }
