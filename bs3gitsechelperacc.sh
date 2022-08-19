@@ -3,7 +3,7 @@
 #Richard Deodutt
 #08/15/2022
 #This script is meant to securely and automatically create a git user and push changes to any branch but main, placing the git user in a GitAcc group, doing git add and commit while also handling sensitive personal information such as phone numbers or SSN before pushing. 
-#This script should be place in /bin so all users can access it making sure to refresh the shell so it detects it. The script should then be run when in the directory of the git local repository. The script needs to be run first using sudo or as root for the setup or user and group creation bit. Then the script needs to be run again to do the git operations bit as sudo or root is most likely not setup to do git operations. 
+#This script should be place in /bin so all users can access it making sure to refresh the shell so it detects it. The script should then be run when in the directory of the git local repository. The script needs to be run first using sudo or as root for the setup or user and group creation bit. Then the script needs to be run again to do the git operations bit as sudo or root is most likely not setup to do git operations. Has a issue where if you are on a non main branch but tracking main it will push to the branch with the same name as the local branch but will say it's still ahead of main because it's tracking main. Needs to be configured to track the right branch. 
 
 GitLogsLocation='.git/.gitlogs'
 
@@ -585,15 +585,19 @@ GitAheadCheck(){
 #Function to git push all the commits
 GitPushAll(){
     #Check if we are trying to push to main
-    CBranch=$(git branch | cut -c 3-)
-    #Check if this is the main branch and if it is can we push to it
-    if [[ CBranch == "main" ]] && CanPushMain ; then
-        #Trying to push to main when it is not allowed
-        Log "Can't push to the main branch"
-        exit 1
-    else
-        #Trying to push to main when it is allowed
-        Log "Pushing to the main branch but it is enabled in the script right now"
+    git branch | grep -o "* main" > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        #Only found if this is the main branch
+        Log "This is the main branch"
+        #Check if this is the main branch and if it is can we push to it
+        if ! $CanPushMain; then
+            #Trying to push to main when it is not allowed
+            Log "Can't push to the main branch"
+            exit 1
+        else
+            #Trying to push to main when it is allowed
+            Log "Pushing to the main branch but it is enabled in the script right now"
+        fi
     fi
     #Check the latest state of the remote branch
     Log "Fetching the latest state of the remote branch before a push"
@@ -609,8 +613,8 @@ GitPushAll(){
     fi
     #Simulate a push to check if it will cause issues
     Log "Simulating a push before actually pushing to check for issues"
-    #Simulate a git push
-    git push --dry-run
+    #Simulate a git push, was giving issues with branches
+    git push origin HEAD --dry-run
     if [ $? -ne 0 ]; then
         #Git simulated push failed so exit
         Log "Git simulated push failed"
@@ -621,8 +625,8 @@ GitPushAll(){
     fi
     #Everything seems okay before the real push
     Log "Pushing commits"
-    #Git push command
-    git push
+    #Git push command, was giving issues with branches
+    git push origin HEAD
     #Check if the git push failed
     if [ $? -ne 0 ]; then
         #Git push failed so exit
