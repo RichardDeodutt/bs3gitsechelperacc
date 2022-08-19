@@ -350,6 +350,7 @@ GitModifiedCheck(){
     else
         #There was not a modification
         return 1
+    fi
 }
 
 #Function to get the filenames of the modified and new untracked files
@@ -532,7 +533,7 @@ GitCommitAll(){
     #First argument is the commit message if any
     CommitMessage=$1
     #Git commit command
-    if [ -n $CommitMessage ]; then
+    if [ -n "$CommitMessage" ]; then
         #Has a one line message so use that
         git commit -m "$CommitMessage"
     else
@@ -566,8 +567,6 @@ GitCommitCheck(){
             #User wanted to commit all the stages so commit it and use a one line message
             GitCommitAll "$CMessage"
         fi
-        #User wanted to commit all the stages so commit it
-        GitCommitAll
     else
         #User did not want to run git commit, can't continue so exit
         Log "Git commit not run, run this again when you are ready"
@@ -588,7 +587,7 @@ GitPushAll(){
     #Check if we are trying to push to main
     CBranch=$(git branch | cut -c 3-)
     #Check if this is the main branch and if it is can we push to it
-    if [[ CBranch == "main" ]] && ! CanPushMain ; then
+    if [[ CBranch == "main" ]] && CanPushMain ; then
         #Trying to push to main when it is not allowed
         Log "Can't push to the main branch"
         exit 1
@@ -638,7 +637,7 @@ GitPushAll(){
 #Function to control git push
 GitPushCheck(){
     #Tell user there are commits to be pushed
-    Log "There are commits to be pushed"
+    Log "There are commits to be pushed to the remote branch"
     #Ask the user if to push all the commits
     if PromptYN "Would you like to push all the commits?"; then
         #User wanted to push all the stages so push it
