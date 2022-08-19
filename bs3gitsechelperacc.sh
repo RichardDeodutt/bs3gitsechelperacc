@@ -87,7 +87,7 @@ GitMembershipCheck(){
     #Second argument is the gitgroupname for membership check
     MembershipCheckGitGroup=$2
     #Check if the git user is a member of the git group
-    id -nG $MemberCheckGitUser 2> /dev/null | grep -w $MemberCheckGitGroup > /dev/null 2>&1
+    groups $MemberCheckGitUser 2> /dev/null | grep -o "$MemberCheckGitGroup" > /dev/null 2>&1
     #return the return value of the last command
     return $?
 }
